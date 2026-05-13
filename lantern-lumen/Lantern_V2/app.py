@@ -14,9 +14,10 @@ from adviser import ask, COMPANY_NAMES, build_prompt
 from query_router import route
 from retrieve import retrieve
 import requests as req
+from config import OLLAMA_URL, OLLAMA_MODEL, STATIC_DIR, TEMPLATES_DIR
 
 app = FastAPI(title='Lantern Intelligence')
-app.mount("/static", StaticFiles(directory="/workspace/lantern-lumen/Lantern_V2/static"), name="static")
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 app.add_middleware(
     CORSMiddleware,
@@ -24,8 +25,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-OLLAMA_URL   = "http://localhost:11434/api/generate"
-OLLAMA_MODEL = "llama3.1:8b"
+
 
 # -------------------------------------------------------------
 # History exchange
@@ -43,41 +43,6 @@ class QuestionRequest(BaseModel):
     question: str
     db_key: str
     history: Optional[List[HistoryExchange]] = []
-
-
-# -------------------------------------------------------------
-# CLASSIFICATION HELPER
-# -------------------------------------------------------------
-# Runs the full extractor → classifier pipeline on any text.
-# Returns a clean list of dicts safe for JSON serialization.
-# Currency values misrouted to wrong metric types are dropped.
-# -------------------------------------------------------------
-
-def run_classification(text: str) -> list[dict]:
-    """
-    Runs extractor → classifier on text.
-    Returns a JSON-serializable list of classified metric dicts.
-    Drops misrouted currency values (in_range=False + currency flag).
-    """
-    extractions = extract_values(text)
-    classified  = classify(extractions)
-
-    results = []
-    for c in classified:
-        # Drop currency values that landed on the wrong metric type
-        if not c.in_range and c.flag and "currency" in c.flag.lower():
-            continue
-        results.append({
-            "metric":    c.display_name,
-            "value":     c.numeric,
-            "unit":      c.unit,
-            "type":      c.value_type,
-            "threshold": c.threshold,
-            "in_range":  c.in_range,
-            "flag":      c.flag,
-        })
-    return results
-
 
 # -------------------------------------------------------------
 # STREAMING GENERATOR
@@ -198,21 +163,10 @@ async def ask_eval(req_body: QuestionRequest):
             return {"error": token}
         full_response += token
 
-    # Run classification pipeline on the full response
-    classified_metrics = run_classification(full_response)
-    flags = [
-        f"{m['metric']}: {m['flag']}"
-        for m in classified_metrics
-        if m["flag"]
-    ]
-
     return {
         "question": question,
         "company": company_name,
         "answer": full_response,
-        "classified_metrics": classified_metrics,
-        "flags": flags,
-        "has_issues": len(flags) > 0,
         "retrieved_context": {
             "live_data": live_data,
             "concepts": concepts
@@ -245,5 +199,5 @@ async def get_companies():
 
 @app.get("/", response_class=HTMLResponse)
 async def serve_ui():
-    with open("templates/index.html", "r") as f:
+    with open(TEMPLATES_DIR / "index.html", "r") as f:
         return f.read()

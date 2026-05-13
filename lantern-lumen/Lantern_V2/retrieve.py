@@ -15,20 +15,12 @@
 import os
 import sqlite3
 import chromadb
+from config import (
+    CHROMA_STORE_DIR, COLLECTION_NAME, TOP_K_CONCEPTS,
+    SQL_DIR, DB_PATHS,
+)
 
 from sentence_transformers import SentenceTransformer
-# -------------------------------------------------------------
-# CONFIGURATION
-# -------------------------------------------------------------
-CHROMA_STORE_DIR = "/workspace/lantern-lumen/Lantern_V2/chroma_store"
-COLLECTION_NAME  = "lantern_financial_concepts"
-TOP_K_CONCEPTS   = 3  # how many concept docs to retrieve per question
-SQL_DIR = "/workspace/lantern-lumen/Lantern_V2/matrix_queries"
-DB_PATHS = {
-    "service1": "/workspace/lantern-lumen/Lantern_V2/databases/service1.db",
-    "service2": "/workspace/lantern-lumen/Lantern_V2/databases/service2.db",
-    "service3": "/workspace/lantern-lumen/Lantern_V2/databases/service3.db"
-}
 
 # -------------------------------------------------------------
 # MAP QUERY NAMES TO .SQL FILES

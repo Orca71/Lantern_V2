@@ -8,15 +8,7 @@ import requests
 from query_router import route
 from retrieve import retrieve
 from metrics_classifier import pre_classify_live_data, format_classifications_for_prompt
-
-OLLAMA_URL   = "http://localhost:11434/api/generate"
-OLLAMA_MODEL = "llama3.1:8b"
-
-COMPANY_NAMES = {
-    "service1": "Apex Strategy Consulting",
-    "service2": "Meridian Consulting Group",
-    "service3": "Vertex Advisory Partners",
-}
+from config import OLLAMA_URL, OLLAMA_MODEL, COMPANY_NAMES
 
 
 # -------------------------------------------------------------

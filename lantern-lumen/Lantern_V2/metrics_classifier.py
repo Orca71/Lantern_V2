@@ -13,9 +13,7 @@
 # =============================================================
 import yaml
 from pathlib import Path
-
-
-SCHEMA_PATH = "metrics_schema.yaml"
+from config import SCHEMA_PATH
 
 #-----SCHEMA LOADER -----
 def _load_schema(schema_path: str = SCHEMA_PATH) -> dict:
