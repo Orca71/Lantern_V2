@@ -10,7 +10,7 @@ from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from fastapi.staticfiles import StaticFiles
-from adviser import ask, COMPANY_NAMES, build_prompt
+from adviser import ask, COMPANY_NAMES, prepare
 from query_router import route
 from retrieve import retrieve
 import requests as req
@@ -83,37 +83,14 @@ def stream_ollama(prompt):
 # -------------------------------------------------------------
 # STREAMING ENDPOINT — /ask
 # -------------------------------------------------------------
-# Streams LLM tokens to the UI in real time.
-# After streaming, a follow-up call to /classify can retrieve
-# the structured metrics for the same response if needed.
-# -------------------------------------------------------------
 
 @app.post("/ask")
 async def ask_question(req_body: QuestionRequest):
-    """
-    Main endpoint. Streams the LLM response back to the browser.
-    The UI receives raw text tokens in real time.
-    """
-    question = req_body.question
-    db_key = req_body.db_key
-
-    company_name = COMPANY_NAMES.get(db_key, db_key)
-    selected_queries = route(question)
-    context = retrieve(question, db_key)
-    live_data = context["live_data"]
-    concepts = context["concepts"]
 
     history = [{"question": h.question, "answer": h.answer}
                 for h in req_body.history]
 
-    prompt = build_prompt(
-        question=question,
-        company_name=company_name,
-        live_data=live_data,
-        concepts=concepts,
-        selected_queries=selected_queries,
-        history=history
-    )
+    prompt = prepare(req_body.question, req_body.db_key, history=history)
     return StreamingResponse(
         stream_ollama(prompt),
         media_type='text/plain'
@@ -131,30 +108,11 @@ async def ask_question(req_body: QuestionRequest):
 
 @app.post("/ask_eval")
 async def ask_eval(req_body: QuestionRequest):
-    """
-    Evaluation endpoint. Collects the full response, runs it
-    through the classification pipeline, and returns everything
-    as structured JSON including classified metric values.
-    """
-    question = req_body.question
-    db_key = req_body.db_key
-    company_name = COMPANY_NAMES.get(db_key, db_key)
-    selected_queries = route(question)
-    context = retrieve(question, db_key)
-    live_data = context["live_data"]
-    concepts = context["concepts"]
 
     history = [{"question": h.question, "answer": h.answer}
                 for h in req_body.history]
 
-    prompt = build_prompt(
-        question=question,
-        company_name=company_name,
-        live_data=live_data,
-        concepts=concepts,
-        selected_queries=selected_queries,
-        history=history
-    )
+    prompt = prepare(req_body.question, req_body.db_key, history=history)
 
     # Collect full response
     full_response = ""
@@ -167,11 +125,7 @@ async def ask_eval(req_body: QuestionRequest):
         "question": question,
         "company": company_name,
         "answer": full_response,
-        "retrieved_context": {
-            "live_data": live_data,
-            "concepts": concepts
-        },
-        "selected_queries": selected_queries
+        "selected_queries": route(req_body.question )
     }
 
 

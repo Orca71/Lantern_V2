@@ -164,24 +164,14 @@ def call_ollama(prompt, stream=True):
 
     return full_response
 
+# Prepare function, for both HTTP streaming and CLI
 
-# -------------------------------------------------------------
-# ASK
-# -------------------------------------------------------------
-
-def ask(question, db_key):
+def prepare(question, db_key, history=None):
     company_name = COMPANY_NAMES.get(db_key, db_key)
-
-    print("\nRouting question...")
     selected_queries = route(question)
-    print(f"Selected queries: {selected_queries}")
-
-    print(f"Retrieving data from {company_name}...")
-    context   = retrieve(question, db_key)
+    context   = retrieve(question, db_key, selected_queries = selected_queries)
     live_data = context["live_data"]
     concepts  = context["concepts"]
-
-    print("Building prompt...")
     prompt = build_prompt(
         question=question,
         company_name=company_name,
@@ -189,17 +179,14 @@ def ask(question, db_key):
         concepts=concepts,
         selected_queries=selected_queries,
     )
+    return prompt
 
-    print("\n===== FINAL PROMPT SENT TO OLLAMA =====")
-    print(f"Prompt length: {len(prompt)} characters")
-    print("\n===== PROMPT START =====")
-    print(prompt[:4000])
-    print("\n===== PROMPT END =====")
-    print(prompt[-4000:])
-    print("===== END FINAL PROMPT =====\n")
+# -------------------------------------------------------------
+# ASK
+# -------------------------------------------------------------
 
-    print(f"Sending to Ollama ({OLLAMA_MODEL})...")
-    response = call_ollama(prompt)
+def ask(question, db_key):
+    response = call_ollama(prepare(question, db_key))
     return response
 
 
