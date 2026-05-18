@@ -239,11 +239,12 @@ class ServiceBusinessAdapter(BaseAdapter):
             if not col_lines:
                 continue
 
+            select_columns = ",\n".join(col_lines)
+
             sql = (
                 f"CREATE VIEW IF NOT EXISTS {canonical_table} AS\n"
                 f"SELECT\n"
-                f"{',\n'.join(col_lines)}\n"
+                f"{select_columns}\n"
                 f"FROM {real_table};"
             )
-            views.append(sql)
         return views
