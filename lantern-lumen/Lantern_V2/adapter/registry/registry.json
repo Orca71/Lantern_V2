@@ -1,0 +1,13 @@
+{
+  "databases": {
+    "/workspace/lantern-lumen/lantern-lumen/Lantern_V2/databases/test_cases.db": {
+      "db_path": "/workspace/lantern-lumen/lantern-lumen/Lantern_V2/databases/test_cases.db",
+      "db_name": "test_cases",
+      "business_type": "service",
+      "schema_hash": "483d02565d280e8a",
+      "mapping_file": "test_cases_mapping.yaml",
+      "validated_at": "2026-05-19T14:43:11.637775+00:00",
+      "status": "ready"
+    }
+  }
+}

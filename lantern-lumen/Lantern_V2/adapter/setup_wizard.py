@@ -94,6 +94,10 @@ def setup_database(db_path: str, business_type: str = "service",
     # --- Step 6: Generate and execute views ---
     print("\n[6/7] Generating and creating canonical views...")
     view_sqls = adapter.generate_views(confirmed)
+    print(f"      DEBUG: generated {len(view_sqls)} view SQL statements")
+    for i, sql in enumerate(view_sqls, 1):
+        print(f"--- View {i} ---")
+        print(sql)
     execute_errors = execute_views(db_path, view_sqls)
 
     if execute_errors:

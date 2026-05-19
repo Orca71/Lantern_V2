@@ -1,0 +1,13 @@
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Local databases / vector stores
+*.db
+*.sqlite3
+chroma_store/
+
+# Secrets / local config
+.env
+tokens.json

@@ -1,0 +1,52 @@
+cash_snapshot:
+  real_table: bank_balances
+  columns:
+    snapshot_id: balance_id
+    snapshot_date: balance_date
+    cash_balance: cash_on_hand
+    accounts_receivable: receivables
+    accounts_payable: payables
+clients:
+  real_table: customers
+  columns:
+    client_id: cust_id
+    client_name: customer_name
+    industry: vertical
+    status: account_status
+    acquired_date: onboarded_at
+company:
+  real_table: organization
+  columns:
+    company_name: name
+    industry: vertical
+    founded_date: established
+    created_at: created_at
+employees:
+  real_table: staff
+  columns:
+    employee_id: staff_id
+    name: full_name
+    role: job_title
+    salary: annual_salary
+    hire_date: employment_start
+    end_date: departure_date
+expenses:
+  real_table: costs
+  columns:
+    expense_id: cost_id
+    amount: payment_amount
+    category: cost_category
+    expense_date: transaction_date
+    vendor: vendor_name
+    is_recurring: recurring
+invoices:
+  real_table: billing_records
+  columns:
+    invoice_id: bill_id
+    client_id: cust_id
+    amount: invoice_total
+    issue_date: billing_date
+    due_date: payment_due
+    paid_date: settled_at
+    status: invoice_status
+    service_type: type

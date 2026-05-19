@@ -14,38 +14,6 @@ from config import SQL_DIR
 # either directly or through views the adapter creates.
 # ----------------------------------------------------------
 
-CANONICAL_SCHEMA = {
-    "cash_snapshot": [
-        "snapshot_id", "snapshot_date", "cash_balance",
-        "accounts_receivable", "accounts_payable"
-    ],
-    "clients": [
-        "client_id", "client_name", "industry",
-        "status", "acquired_date"
-    ],
-    "company": [
-        "company_name", "industry", "founded_date", "created_at"
-    ],
-    "employees": [
-        "employee_id", "name", "role",
-        "salary", "hire_date", "end_date"
-    ],
-    "expenses": [
-        "expense_id", "amount", "category",
-        "expense_date", "vendor", "is_recurring"
-    ],
-    "invoices": [
-        "invoice_id", "client_id", "amount", "issue_date",
-        "due_date", "paid_date", "status", "service_type"
-    ],
-}
-
-# ----------------------------------------------------------
-# SYNONYM DICTIONARY
-# Common real-world variations of canonical names.
-# Keys are canonical, values are lists of known aliases.
-# ----------------------------------------------------------
-
 TABLE_SYNONYMS = {
     "cash_snapshot":  ["bank_balances", "cash_positions", "financials",
                        "cash_records", "balance_sheet", "cash_history"],
@@ -57,31 +25,65 @@ TABLE_SYNONYMS = {
                        "team_members", "workers", "people"],
     "expenses":       ["costs", "expenditures", "spending",
                        "outflows", "payments", "transactions"],
-    "invoices":       ["billing", "bills", "orders", "sales",
-                       "sales_records", "revenue_records"],
+    "invoices":       ["billing", "billing_records", "bills", "orders",
+                       "sales", "sales_records", "revenue_records",
+                       "invoice_records"],
 }
 
 COLUMN_SYNONYMS = {
-    "snapshot_date":       ["date", "record_date", "as_of_date", "balance_date"],
-    "cash_balance":        ["balance", "cash", "cash_on_hand", "bank_balance"],
+    # --- Cash Snapshot ---
+    "snapshot_id":         ["balance_id", "record_id", "position_id"],
+    "snapshot_date":       ["date", "record_date", "as_of_date",
+                            "balance_date"],
+    "cash_balance":        ["balance", "cash", "cash_on_hand",
+                            "bank_balance"],
     "accounts_receivable": ["receivables", "ar", "money_owed", "outstanding"],
     "accounts_payable":    ["payables", "ap", "owed", "liabilities"],
+
+    # --- Clients ---
     "client_id":           ["customer_id", "account_id", "cust_id"],
     "client_name":         ["customer_name", "account_name", "name", "company"],
     "acquired_date":       ["start_date", "client_since", "onboarded_at",
                             "joined_date", "created_at"],
+
+    # --- Company ---
     "company_name":        ["name", "business_name", "organization_name"],
     "founded_date":        ["established", "inception_date", "start_date"],
+
+    # --- Shared (Clients + Company) ---
+    "industry":            ["vertical", "sector", "business_type",
+                            "domain", "market"],
+
+    # --- Employees ---
     "employee_id":         ["staff_id", "person_id", "worker_id", "id"],
+    "name":                ["full_name", "employee_name", "staff_name",
+                            "person_name", "fullname"],
+    "role":                ["job_title", "position", "title", "designation",
+                            "job_role"],
+    "salary":              ["annual_salary", "compensation", "pay", "wage",
+                            "base_salary"],
     "hire_date":           ["start_date", "joined_at", "employment_start",
                             "onboarded_at"],
     "end_date":            ["termination_date", "exit_date", "left_at",
                             "departure_date"],
+
+    # --- Shared (Expenses + Invoices) ---
+    "amount":              ["invoice_total", "invoice_amount", "bill_amount",
+                            "payment_amount", "cost_amount", "total", "value",
+                            "subtotal"],
+
+    # --- Expenses ---
     "expense_id":          ["cost_id", "transaction_id", "payment_id"],
     "expense_date":        ["date", "transaction_date", "payment_date",
                             "cost_date"],
+    "category":            ["cost_category", "expense_category",
+                            "expense_type", "classification", "type"],
+    "vendor":              ["vendor_name", "supplier", "supplier_name",
+                            "payee", "merchant"],
     "is_recurring":        ["recurring", "repeat", "subscription",
                             "is_subscription"],
+
+    # --- Invoices ---
     "invoice_id":          ["bill_id", "order_id", "sale_id",
                             "transaction_id"],
     "issue_date":          ["created_at", "billing_date", "invoice_date",
@@ -93,7 +95,6 @@ COLUMN_SYNONYMS = {
                             "account_status", "invoice_status"],
     "service_type":        ["type", "category", "service", "product_type"],
 }
-
 
 class ServiceBusinessAdapter(BaseAdapter):
 
@@ -213,38 +214,37 @@ class ServiceBusinessAdapter(BaseAdapter):
     # ----------------------------------------------------------
 
     def generate_views(self, mapping: dict) -> list[str]:
-        """
-        Generate CREATE VIEW SQL statements from the confirmed mapping.
-        Views expose the canonical schema so Lantern's existing
-        queries run unchanged against any connected database.
-        """
         views = []
+        print(f"DEBUG generate_views: received {len(mapping)} tables")
         for canonical_table, details in mapping.items():
             real_table = details.get("real_table")
             columns = details.get("columns", {})
+            print(f"  DEBUG: {canonical_table} -> real_table={real_table!r}, columns={len(columns)}")
 
             if not real_table:
+                print(f"    SKIP: no real_table")
                 continue
 
             col_lines = []
             for canonical_col, real_col in columns.items():
                 if real_col:
                     if real_col != canonical_col:
-                        col_lines.append(
-                            f"    {real_col} AS {canonical_col}"
-                        )
+                        col_lines.append(f"    {real_col} AS {canonical_col}")
                     else:
                         col_lines.append(f"    {real_col}")
 
+            print(f"    col_lines count: {len(col_lines)}")
             if not col_lines:
+                print(f"    SKIP: no col_lines")
                 continue
 
-            select_columns = ",\n".join(col_lines)
-
+            col_block = ",\n".join(col_lines)
             sql = (
                 f"CREATE VIEW IF NOT EXISTS {canonical_table} AS\n"
                 f"SELECT\n"
-                f"{select_columns}\n"
+                f"{col_block}\n"
                 f"FROM {real_table};"
             )
+            views.append(sql)
+            print(f"    ADDED view for {canonical_table}")
         return views

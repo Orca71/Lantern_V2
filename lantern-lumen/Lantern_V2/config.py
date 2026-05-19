@@ -22,12 +22,14 @@ DB_PATHS = {
     "service1": DATABASES_DIR / "service1.db",
     "service2": DATABASES_DIR / "service2.db",
     "service3": DATABASES_DIR / "service3.db",
+    "testcase": DATABASES_DIR / "test_cases.db",
 }
 
 COMPANY_NAMES = {
     "service1": "Apex Strategy Consulting",
     "service2": "Meridian Consulting Group",
     "service3": "Vertex Advisory Partners",
+    "testcase": "Test Case Company"
 }
 
 # --- LLM ---

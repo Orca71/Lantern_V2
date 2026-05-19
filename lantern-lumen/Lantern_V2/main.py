@@ -15,7 +15,7 @@
 #   2. python main.py
 # =============================================================
 
-from adviser import ask, COMPANY_NAMES 
+from adviser import ask, COMPANY_NAMES
 
 # -------------------------------------------------------------
 # DISPLAY HELPERS
@@ -32,6 +32,7 @@ def print_menu():
     print(" 1. Apex Strategy Consulting (service1)")
     print(" 2. Meridian Consulting Group (service2)")
     print(" 3. Vertex Advisory Partners (service3)")
+    print(" 4. TestCase company")
     print(" q. Quit")
 
 def print_divider():
@@ -50,7 +51,8 @@ def select_company():
     db_map = {
         "1": "service1",
         "2": "service2",
-        "3": "service3"
+        "3": "service3",
+        "4": "testcase"
     }
     while True:
         print_menu()
@@ -58,14 +60,14 @@ def select_company():
 
         if choice == "q":
             return None
-        
+
         if choice in db_map:
             db_key = db_map[choice]
             company = COMPANY_NAMES[db_key]
             print(f"\nConnected to: {company}")
             print_divider()
             return db_key
-        
+
         print("Invalid choice. Please Enter 1, 2, 3, or q .")
 
 # -------------------------------------------------------------
@@ -78,7 +80,7 @@ def run_session(db_key):
     selected company. Loops until user types 'exist',
     'quite', or 'back'.
 
-    Args: 
+    Args:
         db_key = selected company database key
     """
     company = COMPANY_NAMES[db_key]
@@ -103,9 +105,9 @@ def run_session(db_key):
             return 'quit'
 
         if question.lower() in ["back", "b", "menu"]:
-            return "back"            
-        
-        # run the full pipeline 
+            return "back"
+
+        # run the full pipeline
         print_divider()
         ask(question, db_key)
         print_divider()
