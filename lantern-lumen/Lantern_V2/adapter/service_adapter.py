@@ -13,6 +13,31 @@ from config import SQL_DIR
 # Every service business database must expose these —
 # either directly or through views the adapter creates.
 # ----------------------------------------------------------
+CANONICAL_SCHEMA = {
+    "cash_snapshot": [
+        "snapshot_id", "snapshot_date", "cash_balance",
+        "accounts_receivable", "accounts_payable"
+    ],
+    "clients": [
+        "client_id", "client_name", "industry",
+        "status", "acquired_date"
+    ],
+    "company": [
+        "company_name", "industry", "founded_date", "created_at"
+    ],
+    "employees": [
+        "employee_id", "name", "role",
+        "salary", "hire_date", "end_date"
+    ],
+    "expenses": [
+        "expense_id", "amount", "category",
+        "expense_date", "vendor", "is_recurring"
+    ],
+    "invoices": [
+        "invoice_id", "client_id", "amount", "issue_date",
+        "due_date", "paid_date", "status", "service_type"
+    ],
+}
 
 TABLE_SYNONYMS = {
     "cash_snapshot":  ["bank_balances", "cash_positions", "financials",
