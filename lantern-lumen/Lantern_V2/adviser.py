@@ -9,7 +9,8 @@ from query_router import route
 from retrieve import retrieve
 from metrics_classifier import pre_classify_live_data, format_classifications_for_prompt
 from config import OLLAMA_URL, OLLAMA_MODEL, COMPANY_NAMES
-
+from adapter import registry as reg
+from pathlib import Path
 
 # -------------------------------------------------------------
 # BUILD PROMPT
@@ -167,7 +168,21 @@ def call_ollama(prompt, stream=True):
 # Prepare function, for both HTTP streaming and CLI
 
 def prepare(question, db_key, history=None):
-    company_name = COMPANY_NAMES.get(db_key, db_key)
+    company_name = COMPANY_NAMES.get(db_key)
+    if not company_name:
+        for entry in reg.list_registered():
+            if entry["db_path"] == db_key or \
+               entry["db_path"] == str(Path(db_key).resolve()):
+                company_name = entry.get(
+                    "company_name",
+                    entry.get("db_name", Path(db_key).stem)
+                )
+                break
+
+    # Final fallback
+    if not company_name:
+        company_name = Path(db_key).stem \
+            if ("/" in db_key or "\\" in db_key) else db_key
     selected_queries = route(question)
     context   = retrieve(question, db_key, selected_queries = selected_queries)
     live_data = context["live_data"]
@@ -178,6 +193,7 @@ def prepare(question, db_key, history=None):
         live_data=live_data,
         concepts=concepts,
         selected_queries=selected_queries,
+        history=history
     )
     return prompt
 

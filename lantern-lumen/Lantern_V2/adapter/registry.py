@@ -94,7 +94,7 @@ def get_mappings(db_path: str) -> dict | None:
         return yaml.safe_load(f)
 
 def register(db_path: str, business_type: str,
-            mapping: dict, schema: dict):
+            mapping: dict, schema: dict, company_name: str = None):
     """
     Persist a confirmed mapping. Saves the mapping YAML to disk and updates the registry with metadata.
     """
@@ -114,6 +114,7 @@ def register(db_path: str, business_type: str,
         "db_path": db_key,
         "db_name": db_name,
         "business_type": business_type,
+        "company_name": company_name or db_name,
         "schema_hash": _compute_schema_hash(schema),
         "mapping_file": mapping_filename,
         "validated_at": datetime.now(timezone.utc).isoformat(),

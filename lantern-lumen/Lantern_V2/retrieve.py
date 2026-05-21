@@ -106,11 +106,11 @@ def get_live_data(db_key, selected_queries=None):
     Returns:
         dict: {query_name: [list of result row dicts]}
     """
-    if db_key not in DB_PATHS:
-        raise ValueError(f"Unknown database: {db_key}."
-                         f"choose from: {list(DB_PATHS.keys())}")
+    if db_key in DB_PATHS:
+        db_path = DB_PATHS[db_key]
+    else:
+        db_path = db_key
 
-    db_path = DB_PATHS[db_key]
     if not os.path.exists(db_path):
         raise FileNotFoundError(f"Database file not found: {db_path}")
 

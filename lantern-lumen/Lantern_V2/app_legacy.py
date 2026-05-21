@@ -1,0 +1,157 @@
+# =============================================================
+# LANTERN INTELLIGENCE v2 — app.py
+# Web server — connects the browser UI to the Lantern pipeline
+# =============================================================
+
+import json
+from typing import List, Optional
+from fastapi import FastAPI
+from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from fastapi.staticfiles import StaticFiles
+from adviser import ask, COMPANY_NAMES, prepare
+from query_router import route
+from retrieve import retrieve
+import requests as req
+from config import OLLAMA_URL, OLLAMA_MODEL, STATIC_DIR, TEMPLATES_DIR
+
+app = FastAPI(title='Lantern Intelligence')
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# -------------------------------------------------------------
+# History exchange
+# -------------------------------------------------------------
+class HistoryExchange(BaseModel):
+    question: str
+    answer: str
+
+
+# -------------------------------------------------------------
+# REQUEST MODEL
+# -------------------------------------------------------------
+
+class QuestionRequest(BaseModel):
+    question: str
+    db_key: str
+    history: Optional[List[HistoryExchange]] = []
+
+# -------------------------------------------------------------
+# STREAMING GENERATOR
+# -------------------------------------------------------------
+# Streams tokens to the browser AND collects the full response
+# so it can be classified after streaming completes.
+# -------------------------------------------------------------
+
+def stream_ollama(prompt):
+    """Generator that yields tokens from Ollama as they arrive."""
+    payload = {
+        "model": OLLAMA_MODEL,
+        "prompt": prompt,
+        "stream": True,
+        "options": {
+            "temperature": 0.1,
+            "num_predict": 512
+        }
+    }
+    try:
+        response = req.post(OLLAMA_URL, json=payload, stream=True, timeout=120)
+        response.raise_for_status()
+        for line in response.iter_lines():
+            if line:
+                try:
+                    chunk = json.loads(line)
+                    token = chunk.get("response", "")
+                    if token:
+                        yield token
+                    if chunk.get("done", False):
+                        break
+                except json.JSONDecodeError:
+                    continue
+    except Exception as e:
+        yield f"ERROR: {str(e)}"
+
+
+# -------------------------------------------------------------
+# STREAMING ENDPOINT — /ask
+# -------------------------------------------------------------
+
+@app.post("/ask")
+async def ask_question(req_body: QuestionRequest):
+
+    history = [{"question": h.question, "answer": h.answer}
+                for h in req_body.history]
+
+    prompt = prepare(req_body.question, req_body.db_key, history=history)
+    return StreamingResponse(
+        stream_ollama(prompt),
+        media_type='text/plain'
+    )
+
+
+# -------------------------------------------------------------
+# EVALUATION ENDPOINT — /ask_eval
+# -------------------------------------------------------------
+# Returns the full response as JSON — no streaming.
+# Now includes classified metrics from the pipeline.
+# Used by the eval system and any consumer that needs
+# structured metric data alongside the LLM text.
+# -------------------------------------------------------------
+
+@app.post("/ask_eval")
+async def ask_eval(req_body: QuestionRequest):
+
+    history = [{"question": h.question, "answer": h.answer}
+                for h in req_body.history]
+
+    prompt = prepare(req_body.question, req_body.db_key, history=history)
+
+    # Collect full response
+    full_response = ""
+    for token in stream_ollama(prompt):
+        if token.startswith("ERROR:"):
+            return {"error": token}
+        full_response += token
+
+    return {
+        "question": question,
+        "company": company_name,
+        "answer": full_response,
+        "selected_queries": route(req_body.question )
+    }
+
+
+# -------------------------------------------------------------
+# UTILITY ENDPOINTS
+# -------------------------------------------------------------
+
+@app.post("/route")
+async def get_routes(req_body: QuestionRequest):
+    """Returns which queries the router selects for a question."""
+    queries = route(req_body.question)
+    return {"queries": queries}
+
+
+@app.get("/companies")
+async def get_companies():
+    """Returns the list of available companies."""
+    return {
+        "companies": [
+            {"key": k, "name": v}
+            for k, v in COMPANY_NAMES.items()
+        ]
+    }
+
+
+@app.get("/", response_class=HTMLResponse)
+async def serve_ui():
+    with open(TEMPLATES_DIR / "index.html", "r") as f:
+        return f.read()

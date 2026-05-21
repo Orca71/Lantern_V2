@@ -1,0 +1,14 @@
+{
+  "databases": {
+    "/workspace/lantern-lumen/lantern-lumen/Lantern_V2/uploads/test_cases.db": {
+      "db_path": "/workspace/lantern-lumen/lantern-lumen/Lantern_V2/uploads/test_cases.db",
+      "db_name": "test_cases",
+      "business_type": "service",
+      "company_name": "NorthStar Logistics",
+      "schema_hash": "483d02565d280e8a",
+      "mapping_file": "test_cases_mapping.yaml",
+      "validated_at": "2026-05-21T18:56:24.847266+00:00",
+      "status": "ready"
+    }
+  }
+}
