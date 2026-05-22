@@ -32,7 +32,7 @@ from config import (
 # -------------------------------------------------------------
 
 print("Loading embedding models....")
-embedding_model = SentenceTransformer("EMBEDDING_MODEL_NAME")
+embedding_model = SentenceTransformer(EMBEDDING_MODEL_NAME)
 print("Model Loaded.\n")
 
 # -------------------------------------------------------------

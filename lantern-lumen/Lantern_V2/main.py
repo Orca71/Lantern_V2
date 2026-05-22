@@ -51,8 +51,7 @@ def select_company():
     db_map = {
         "1": "service1",
         "2": "service2",
-        "3": "service3",
-        "4": "testcase"
+        "3": "service3"
     }
     while True:
         print_menu()
