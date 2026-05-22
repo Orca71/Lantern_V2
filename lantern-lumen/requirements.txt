@@ -8,3 +8,6 @@ sqlalchemy
 chromadb
 sentence-transformers==2.6.1
 transformers==4.38.2
+pandas
+openpyxl
+python-multipart
