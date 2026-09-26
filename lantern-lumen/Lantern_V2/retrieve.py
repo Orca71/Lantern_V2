@@ -1,3 +1,4 @@
+from pathlib import Path
 # =============================================================
 # LANTERN INTELLIGENCE v2 — retrieve.py
 # Phase 3: Live SQL execution + ChromaDB concept retrieval
@@ -15,13 +16,21 @@
 import os
 import sqlite3
 import chromadb
-from config import (
-    CHROMA_STORE_DIR, COLLECTION_NAME, TOP_K_CONCEPTS,
-    SQL_DIR, DB_PATHS, EMBEDDING_MODEL_NAME,
-)
 
 from sentence_transformers import SentenceTransformer
-from query_router import route
+# -------------------------------------------------------------
+# CONFIGURATION
+# -------------------------------------------------------------
+BASE_DIR = Path(__file__).parent.resolve()
+CHROMA_STORE_DIR = str(BASE_DIR / "chroma_store")
+COLLECTION_NAME  = "lantern_financial_concepts"
+TOP_K_CONCEPTS   = 3  # how many concept docs to retrieve per question
+SQL_DIR = str(BASE_DIR / "matrix_queries")
+DB_PATHS = {
+    "service1": str(BASE_DIR / "databases" / "service1.db"),
+    "service2": str(BASE_DIR / "databases" / "service2.db"),
+    "service3": str(BASE_DIR / "databases" / "service3.db")
+}
 
 # -------------------------------------------------------------
 # MAP QUERY NAMES TO .SQL FILES
@@ -75,7 +84,7 @@ _sql_queries = None
 def get_embedding_model():
     global _embedding_model_instance
     if _embedding_model_instance is None:
-        _embedding_model_instance = SentenceTransformer(EMBEDDING_MODEL_NAME)
+        _embedding_model_instance = SentenceTransformer("all-MiniLM-L6-v2")
     return _embedding_model_instance
 
 def get_collection():
@@ -95,7 +104,7 @@ def get_sql_queries():
 # -------------------------------------------------------------
 # FUNCTION 1: GET LIVE FINANCIAL DATA FROM SQLITE
 # -------------------------------------------------------------
-def get_live_data(db_key, selected_queries=None):
+def get_live_data(db_key):
     """
     Connect to the selected company database and run all
     8 financial queries. Returns a dictionary of results.
@@ -106,23 +115,13 @@ def get_live_data(db_key, selected_queries=None):
     Returns:
         dict: {query_name: [list of result row dicts]}
     """
-    if db_key in DB_PATHS:
-        db_path = DB_PATHS[db_key]
-    else:
-        db_path = db_key
+    if db_key not in DB_PATHS:
+        raise ValueError(f"Unknown database: {db_key}."
+                         f"choose from: {list(DB_PATHS.keys())}")
 
+    db_path = DB_PATHS[db_key]
     if not os.path.exists(db_path):
         raise FileNotFoundError(f"Database file not found: {db_path}")
-
-    all_queries = get_sql_queries()
-
-    # If a selection is provided, only run those queries, otherwise return all (fallback)
-
-    queries_to_run = (
-        {k: v for k,v in all_queries.items() if k in selected_queries}
-        if selected_queries
-        else all_queries
-    )
 
     results = {}
     conn = sqlite3.connect(db_path)
@@ -130,7 +129,7 @@ def get_live_data(db_key, selected_queries=None):
 
     try:
         cursor = conn.cursor()
-        for query_name, sql in queries_to_run.items():
+        for query_name, sql in get_sql_queries().items():
 
             if sql is None:
                 results[query_name] = {"error": "SQL file not found"}
@@ -180,10 +179,10 @@ def get_concepts(question):
 # -------------------------------------------------------------
 # FUNCTION 3: FULL RETRIEVAL — combines both functions
 # -------------------------------------------------------------
-def retrieve(question, db_key, selected_queries=None):
+def retrieve(question, db_key):
     """
     Full retrieval pipeline. Given a user question and a
-    selected database, returns both (selected) live financial data and
+    selected database, returns both live financial data and
     relevant concept documents.
 
     Args:
@@ -196,7 +195,7 @@ def retrieve(question, db_key, selected_queries=None):
             "concepts":  [{metric, text, score}]
         }
     """
-    live_data = get_live_data(db_key, selected_queries = selected_queries)
+    live_data = get_live_data(db_key)
     concepts = get_concepts(question)
     return {
         "live_data": live_data,
@@ -215,8 +214,7 @@ if __name__ == "__main__":
     test_db = "service1"
     print(f"\nQuestions: {test_question}")
     print(f"Database: {test_db}\n")
-    selected = route(test_question)
-    result = retrieve(test_question, test_db, selected_queries=selected)
+    result = retrieve(test_question, test_db)
 
     print("CONCEPTS RETRIEVED:")
     for concept in result["concepts"]:

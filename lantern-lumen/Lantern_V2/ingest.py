@@ -1,3 +1,4 @@
+from pathlib import Path
 # =============================================================
 # LANTERN INTELLIGENCE v2 — ingest.py
 # Phase 2: Embed and store financial concept documents
@@ -16,10 +17,11 @@ import os
 import chromadb
 
 from sentence_transformers import SentenceTransformer
-from config import (
-    KNOWLEDGE_BASE_DIR, CHROMA_STORE_DIR,
-    COLLECTION_NAME, EMBEDDING_MODEL_NAME,
-)
+
+BASE_DIR = Path(__file__).parent.resolve()
+KNOWLEDGE_BASE_DIR = str(BASE_DIR / "knowledge_base")
+CHROMA_STORE_DIR = str(BASE_DIR / "chroma_store")
+COLLECTION_NAME = 'lantern_financial_concepts'
 
 # -------------------------------------------------------------
 # STEP 1: LOAD THE EMBEDDING MODEL
@@ -32,7 +34,7 @@ from config import (
 # -------------------------------------------------------------
 
 print("Loading embedding models....")
-embedding_model = SentenceTransformer(EMBEDDING_MODEL_NAME)
+embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 print("Model Loaded.\n")
 
 # -------------------------------------------------------------
@@ -122,7 +124,7 @@ embeddings = embedding_model.encode(documents).tolist()
 # which is what ChromaDB expects
 
 #check if documents alreadu exist to avoid duplicates
-existing = collection.get(ids=doc_ids)
+existing = collection.get(ids=doc_ids)  
 existing_ids = existing["ids"]
 
 new_docs = []
@@ -161,7 +163,7 @@ print(f"Total documents in collection: {collection.count()}\n")
 # The correct document should come back every time.
 # If it doesn't, something is wrong with the embeddings.
 # -------------------------------------------------------------
-
+ 
 print("=" * 60)
 print("VERTIFICATOION = Running test quries")
 print("=" * 60)
@@ -177,8 +179,8 @@ expected = [
     "concept_04_client_concentration",
     "concept_03_days_sales_outstanding"
 ]
-
-all_passed = True
+ 
+all_passed = True 
 
 for i, query in enumerate(test_queries):
     #Embed the question using the same model
